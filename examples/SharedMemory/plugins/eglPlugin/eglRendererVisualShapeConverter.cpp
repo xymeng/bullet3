@@ -221,7 +221,13 @@ struct EGLRendererVisualShapeConverterInternalData
 		ci.m_title = "PyBullet";
 		ci.m_width = m_swWidth;
 		ci.m_height = m_swHeight;
-		ci.m_renderDevice = -1;
+
+		const char* device_s = std::getenv("PYBULLET_EGL_DEVICE");
+		int device = -1;
+		if (device_s) {
+            device = std::stoi(device_s);
+		}
+		ci.m_renderDevice = device;
 
 		m_window->createWindow(ci);
 		m_window->setWindowTitle(ci.m_title);
