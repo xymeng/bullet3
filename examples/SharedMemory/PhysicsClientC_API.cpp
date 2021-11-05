@@ -1484,6 +1484,28 @@ B3_SHARED_API int b3CreateCollisionShapeAddSphere(b3SharedMemoryCommandHandle co
 	return -1;
 }
 
+B3_SHARED_API b3SharedMemoryCommandHandle b3ResetMeshDataCommandInit(b3PhysicsClientHandle physClient, int bodyUniqueId, int numVertices, const double* vertices)
+{
+	PhysicsClient* cl = (PhysicsClient*)physClient;
+	b3Assert(cl);
+	b3Assert(cl->canSubmitCommand());
+	if (cl)
+	{
+		struct SharedMemoryCommand* command = cl->getAvailableSharedMemoryCommand();
+		b3Assert(command);
+		command->m_type = CMD_RESET_MESH_DATA;
+		command->m_updateFlags = 0;
+		command->m_resetMeshDataArgs.m_numVertices = numVertices;
+		command->m_resetMeshDataArgs.m_bodyUniqueId = bodyUniqueId;
+		command->m_resetMeshDataArgs.m_flags = 0;
+		int totalUploadSizeInBytes = numVertices * sizeof(double) *3;
+		cl->uploadBulletFileToSharedMemory((const char*)vertices, totalUploadSizeInBytes);
+		return (b3SharedMemoryCommandHandle)command;
+	}
+	return 0;
+}
+
+
 B3_SHARED_API b3SharedMemoryCommandHandle b3GetMeshDataCommandInit(b3PhysicsClientHandle physClient, int bodyUniqueId, int linkIndex)
 {
 	PhysicsClient* cl = (PhysicsClient*)physClient;
@@ -2138,8 +2160,7 @@ B3_SHARED_API int b3CreateMultiBodyLink(b3SharedMemoryCommandHandle commandHandl
 										const double linkInertialFrameOrientation[4],
 										int linkParentIndex,
 										int linkJointType,
-										const double linkJointAxis[3],
-										const char* const linkName)
+										const double linkJointAxis[3])
 {
 	struct SharedMemoryCommand* command = (struct SharedMemoryCommand*)commandHandle;
 	b3Assert(command);
@@ -2184,7 +2205,7 @@ B3_SHARED_API int b3CreateMultiBodyLink(b3SharedMemoryCommandHandle commandHandl
 			command->m_createMultiBodyArgs.m_linkJointAxis[3 * linkIndex + 2] = linkJointAxis[2];
 
 			command->m_createMultiBodyArgs.m_linkMasses[linkIndex] = linkMass;
-			command->m_createMultiBodyArgs.m_linkNames[linkIndex] = linkName;
+			
 			command->m_createMultiBodyArgs.m_numLinks++;
 			return numLinks;
 		}
@@ -3973,6 +3994,19 @@ B3_SHARED_API b3SharedMemoryCommandHandle b3InitSyncBodyInfoCommand(b3PhysicsCli
 	b3Assert(command);
 
 	command->m_type = CMD_SYNC_BODY_INFO;
+	return (b3SharedMemoryCommandHandle)command;
+}
+
+B3_SHARED_API b3SharedMemoryCommandHandle b3InitRequestBodyInfoCommand(b3PhysicsClientHandle physClient, int bodyUniqueId)
+{
+	PhysicsClient* cl = (PhysicsClient*)physClient;
+	b3Assert(cl);
+	b3Assert(cl->canSubmitCommand());
+	struct SharedMemoryCommand* command = cl->getAvailableSharedMemoryCommand();
+	b3Assert(command);
+
+	command->m_type = CMD_REQUEST_BODY_INFO;
+	command->m_sdfRequestInfoArgs.m_bodyUniqueId = bodyUniqueId;
 	return (b3SharedMemoryCommandHandle)command;
 }
 
